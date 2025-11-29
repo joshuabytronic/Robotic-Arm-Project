@@ -2,55 +2,52 @@ class Camera():
     def __init__(
             self,
             name = None,
-            depth = None,
             focal_length = 0,
             x_scan_length=None,
             y_scan_length=None, 
-            camera_position = [0,0,0], # We can integrate depth into this?
-            mount_depth = 0, #Should this change to mount offset?
+            camera_offset = [0,0,0], # We can integrate depth into this?
+            mount_dimensions = [0,0,0], #Should this change to mount offset?
             overlap = None,
             orientation: str = "parallel"
             ):
         """Initialize a Camera object with given properties. 
          Args:
             name (str): Name of the camera.
-            depth (float): Depth of the camera mount.
             focal_length (float): Focal length of the camera.
             x_scan_length (float): Scanning length in the x direction.
             y_scan_length (float): Scanning length in the y direction.
+            camera_position (list): Assuming camera position is 0,0,0 where is the mounting centre
+            mount_dimensions (list): The dimensions of the mount built for the camera IMPORTANT: Only include axes that affect the tool tip position (this should be renamed mount_offset really)
+            overlap (float): The percentage of overlap between scanning areas
+            orientation (str): choose between \"parallel\", \"parallel_2\", or \"perpendicular\"
         """
 
         self._name = name
-        self._depth = depth
         self._focal_length = focal_length
         self._x_scan_length = x_scan_length
         self._y_scan_length = y_scan_length
-        self._camera_position = camera_position
+        self._camera_position = camera_offset
         self.overlap = overlap
 
-        self._mount_depth = mount_depth
-        valid_orientations = set(("parallel","perpendicular"))
-        if orientation in valid_orientations:
-            self.orientation = orientation
-        else:
-            raise ValueError("Please enter a correct orientation value: Currently supported are perpendicular, parallel")
+        self._mount_dimensions = mount_dimensions
+        self.orientation = orientation
         self.area_calc()
         self.camera_offset_calc()
 
     def camera_offset_calc(self):
         self.camera_offset = [0,0,0]
-        self.camera_offset[0] = self.camera_position[0]
-        self.camera_offset[1] = self.camera_position[1]
-        self.camera_offset[2] = self.camera_position[2] + self.depth + self.focal_length + self._mount_depth
+        self.camera_offset[0] = self.camera_position[0] + self._mount_dimensions[0]
+        self.camera_offset[1] = self.camera_position[1] + self._mount_dimensions[1]
+        self.camera_offset[2] = self.camera_position[2] + self.focal_length + self._mount_dimensions[2]
     
     @property
     def mount_depth(self):
-        if self._mount_depth:
-            return self._mount_depth
+        if self._mount_dimensions:
+            return self._mount_dimensions
         raise ValueError("Mount depth not specified!")
     @mount_depth.setter
     def mount_depth(self, value):
-        self._mount_depth = value
+        self._mount_dimensions = value
     
     @property
     def camera_position(self):
@@ -64,16 +61,6 @@ class Camera():
         else:
             raise ValueError("Camera position must be a list of x,y,z values, offset from the mounting position")
 
-    @property
-    def depth(self):
-        val = getattr(self, "_depth", None)
-        if val is None:
-            raise NotImplementedError("Camera must have a depth.")
-        return val
-    @depth.setter
-    def depth(self, value):
-        self._depth = value
-    
     @property
     def focal_length(self):
         val = getattr(self, "_focal_length", None)
@@ -115,25 +102,29 @@ class Camera():
             y_scannable = self.y_scan_length * non_overlapping_area
             self.scan_area = [x_scannable, y_scannable]
 
+neutral = [0,0,0]
+real = [0,-150,50]
+real_surface = [-(49/2),0,75]
 
 surface_control = Camera(
     name="Surface Control",
-    depth=0,
-    focal_length=440,
-    x_scan_length=240,
-    y_scan_length=150,
-    mount_depth = 10,
-    overlap = 0.3,
-    orientation = "parallel"
+    camera_offset = real_surface,
+    focal_length= 440, #480
+    x_scan_length= 150,
+    y_scan_length= 240,
+    mount_dimensions = [20,0,0],
+    overlap = 0,
+    orientation = "parallel_3"
 )
+
 
 scan_control = Camera(
     name="Scan Control",
-    depth=0,
-    focal_length= 400,
-    x_scan_length= 335, #Make sure it's oriented the correct way
+    camera_offset = real, 
+    focal_length= 330,
+    x_scan_length= 324, #Make sure it's oriented the correct way
     y_scan_length= 1,
-    mount_depth = 10,
-    overlap = None,
-    orientation = "perpendicular"
+    mount_dimensions = [10,0,0],
+    overlap = 0,
+    orientation = "final"
 )
