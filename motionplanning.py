@@ -7,7 +7,7 @@ from math import ceil
 from Camera import surface_control, scan_control, Camera
 
 #Variables for user to set:
-sheet_dimensions = [630, 1235, 0]
+sheet_dimensions = [636, 1235, 0]
 sheet_mount_dimensions = [0, 0, 10]
 camera = surface_control
 module_name = "Module1"
@@ -36,7 +36,7 @@ socket_connection = (
     f"\n"
     f"    ! 1. Create, bind, and listen on the server socket\n"
     f"    SocketCreate server_socket;\n" 
-    f"    SocketBind server_socket, {socket_ip}, 8000;\n"
+    f"    SocketBind server_socket, {socket_ip},  8000;\n"
     f"    SocketListen server_socket;\n"
         
     #     Accept an incoming connection with a timeout (60 seconds)
@@ -70,9 +70,9 @@ camera_offset = camera.camera_offset
 
 #Plate positioning and offset calculations
 if camera == surface_control:
-    sheet_x_location = 900-12.5 
+    sheet_x_location = 900-12.5+20 
 elif camera == scan_control:
-    sheet_x_location = 900 #The offset in mm from the robot origin along the x axis
+    sheet_x_location = 900-12.5+20 #The offset in mm from the robot origin along the x axis
 
 sheet_offset = [
         sheet_x_location - (sheet_dimensions[0]) + sheet_mount_dimensions[0],
@@ -100,21 +100,24 @@ def get_surface_coords():
     x_times = ceil(sheet_dimensions[0] / scan_area[0])
     y_times = ceil(sheet_dimensions[1] / scan_area[1])
 
-    edge_to_middle = [x/2 for x in scan_area]
+
+    edge_to_middle = [x/2 for x in scan_area]    
+
     for x in range(1,x_times+1):
-        if x % 2 == 0:
-            y_range = range(1,y_times+1)
-        else:
-            y_range = range(y_times, 0, -1)
-        for y in y_range:
+
+        for y in range(1,y_times+1):
             #Find the centre of the area on the sheet
             if x == x_times:
                 x_centre = (sheet_dimensions[0] - (scan_area[0] / 2))
+            elif x == 1:
+                x_centre = (scan_area[0] / 2)
             else:
                 x_centre = (scan_area[0] * x) - edge_to_middle[0]
             
             if y == y_times:
                 y_centre = (sheet_dimensions[1] - (scan_area[1] / 2))
+            elif y == 1:
+                y_centre = (scan_area[1] /2)
             else:
                 y_centre = (scan_area[1] * y) - edge_to_middle[1]
 
@@ -122,6 +125,30 @@ def get_surface_coords():
             x_global = x_centre + offset[0]
             y_global = y_centre + offset[1]
             coords.append([x_global, y_global, offset[2]])
+    
+    # for x in range(1,x_times+1):
+    #     if x % 2 == 0:
+    #         y_range = range(1,y_times+1)
+    #     else:
+    #         y_range = range(y_times, 0, -1)
+        
+    #     for y in y_range:
+    #         #Find the centre of the area on the sheet
+    #         if x == x_times:
+    #             x_centre = (sheet_dimensions[0] - (scan_area[0] / 2))
+    #         else:
+    #             x_centre = (scan_area[0] * x) - edge_to_middle[0]
+            
+    #         if y == y_times:
+    #             y_centre = (sheet_dimensions[1] - (scan_area[1] / 2))
+    #         else:
+    #             y_centre = (scan_area[1] * y) - edge_to_middle[1]
+
+    #         #Transform to global coords
+    #         x_global = x_centre + offset[0]
+    #         y_global = y_centre + offset[1]
+    #         coords.append([x_global, y_global, offset[2]])
+    
     return coords
 
 def get_scan_coords():
@@ -169,6 +196,7 @@ def motion_to_txt(
     if wait_time:
         wait_command = (
             f"    WaitRob \\InPos;\n"
+            f"    WaitTime 0.2;\n"
             f"    SocketSend client_socket \\Str := \"READY\";\n"
             f"    SocketReceive client_socket \\Str := integer_in \\Time:=30;\n"
             )
