@@ -1,0 +1,34 @@
+www.micro-epsilon.com
+3DInspect
+
+Active programs:
+Program 1: Resample #1
+Program 2: Median Filter #1
+Program 3: Plane Fit #1
+Program 4: Plane Alignment #1
+Program 5: Erosion #1
+Program 6: Defect Extraction #2
+
+surfaceCONTROL 3D 3510-240
+SN: 00623060004
+Recently used parameters: C:/Users/Bytronic/Documents/3DInspect Measurement Data/Parameters/Pit Parameters.me3dparam
+
+Date Time	Part number	Sort defects 1 (Defect 1: Center u location [px]) [px]	Sort defects 2 (Defect 1: Center v location [px]) [px]	Sort defects 3 (Defect 1: Recess [mm]) [mm]	Sort defects 4 (Defect 2: Center u location [px]) [px]	Sort defects 5 (Defect 2: Center v location [px]) [mm]	Sort defects 6 (Defect 2: Recess [mm]) [mm]	Sort defects 7 (Defect 3: Center u location [px]) [px]	Sort defects 8 (Defect 3: Center v location [px]) [px]	Sort defects 9 (Defect 3: Recess [mm]) [mm]
+01/12/2025 12:14:58	                                        	868.000	299.000	0.130	696.000	0.130	0.118	- - -	- - -	- - -
+01/12/2025 12:15:03	                                        	979.000	294.000	0.145	296.000	0.145	0.140	983.000	308.000	0.134
+01/12/2025 12:15:09	                                        	7.000	331.000	0.141	23.000	0.125	0.140	75.000	510.000	0.140
+01/12/2025 12:15:14	                                        	998.429	10.143	0.459	999.000	0.209	0.391	999.000	93.000	0.379
+01/12/2025 12:15:19	                                        	999.000	158.000	0.364	648.000	0.364	0.120	- - -	- - -	- - -
+01/12/2025 12:16:51	                                        	243.000	313.000	0.158	208.000	0.136	0.141	235.000	270.000	0.138
+01/12/2025 12:16:56	                                        	979.000	293.000	0.160	310.000	0.147	0.155	551.000	222.000	0.147
+01/12/2025 12:17:01	                                        	73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:20:12		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:21:53		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:21:58		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:01		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:02		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:03		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:03		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:04		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:06		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
+01/12/2025 12:22:09		73.000	311.000	0.120	- - -	- - -	- - -	- - -	- - -	- - -
