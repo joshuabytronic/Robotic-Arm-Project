@@ -184,7 +184,7 @@ def legacy_get_scan_coords():
         x_global = x_centre + offset[0]
         
         #This shortens the path by alternating the direction of scan.
-        #Remove if statement to keep direction of scan vatriablre.
+        #Remove if statement to keep direction of scan 
         y_min_global = (y_min + offset[1]) if x % 2 == 0 else (y_max + offset[1])
         y_max_global = (y_max + offset[1]) if x % 2 == 0 else (y_min + offset[1])
         
