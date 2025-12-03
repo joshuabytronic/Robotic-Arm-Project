@@ -11,7 +11,7 @@ import smart_scan
 import motionplanning
 import pre_process_data
 
-temp_dir = r'data_output/temp'
+temp_dir = r'data_output/20251202'
 
 class Defects:
     def __init__(self,csv_row):
@@ -65,7 +65,6 @@ def stitch_imgs(grid_size,img_grid,dest_dir):
     for img_path, r, c in img_grid:
         # print(r,c)
         img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-        img = cv2.rotate(img, cv2.ROTATE_180)
         images[(r,c)] = img
 
     for (r, c), img in images.items():
@@ -82,15 +81,12 @@ def stitch_imgs(grid_size,img_grid,dest_dir):
 
 def main(temp_dir):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    # data_dir = os.path.abspath(temp_dir).replace("temp", f"output_{timestamp}")
-    # os.makedirs(data_dir, exist_ok=True)
-    data_dir = os.path.abspath(temp_dir).replace("temp", "working")
-    
-
-    csv_file = pre_process_data.main(temp_dir, data_dir, "copy")
+    data_dir = os.path.abspath(temp_dir).replace("20251202", f"output_{timestamp}")
+    os.makedirs(data_dir, exist_ok=True)
+    # data_dir = os.path.abspath(temp_dir).replace("temp", "working")
     
     image_defects = []
-
+    csv_file = pre_process_data.main(temp_dir, data_dir, "copy")
     with open(csv_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
 
@@ -99,7 +95,7 @@ def main(temp_dir):
             image_defects.append(image_defect.image_data)
 
     
-    # camera_coords = smart_scan.get_smart_coords()
+    camera_coords = smart_scan.get_smart_coords()
     camera_coords = motionplanning.get_surface_coords()
     camera_coords.sort(key = lambda x: x[1])
     print(camera_coords)
@@ -133,13 +129,14 @@ def main(temp_dir):
         img_clean = np.nan_to_num(img_32, nan=0.0)
         # print("img_32 val ", img_32[0][0])
         # print("img_clean val ", img_clean[0][0])
-        img_8 = cv2.normalize(img_clean, None, 0, 255, cv2.NORM_MINMAX).astype("uint8")
-        # low_val, high_val = -7.0, -2.0
-        # img_clipped = np.clip(img_32, low_val, high_val)
-        # img_8 = ((img_clipped - low_val) / (high_val - low_val) * 255).astype(np.uint8)
+        # img_8 = cv2.normalize(img_clean, None, 0, 255, cv2.NORM_MINMAX).astype("uint8")
+        low_val, high_val = -12.0, 1.0
+        img_clipped = np.clip(img_32, low_val, high_val)
+        img_8 = ((img_clipped - low_val) / (high_val - low_val) * 255).astype(np.uint8)
         for defect in image_defects[i][1]:
             annotate_img(img_8, defect)
         
+        img_8 = cv2.rotate(img_8, cv2.ROTATE_180)
         cv2.imwrite(images_ann[i], img_8)
         # cv2.imshow("image", img)
         # cv2.waitKey(0)
@@ -148,10 +145,11 @@ def main(temp_dir):
     index = 0
     for c in range(num_cols):
         for r in range(num_rows):
-            img_ann_grid.append((images_ann[index], r, c))
-            img_raw = os.path.abspath(images_ann[index]).replace("annotated", "raw")
-            img_raw_grid.append((img_raw, r, c))
-            index += 1
+            if index < len(images_ann):
+                img_ann_grid.append((images_ann[index], r, c))
+                img_raw = os.path.abspath(images_ann[index]).replace("annotated", "raw")
+                img_raw_grid.append((img_raw, r, c))
+                index += 1
 
     for i in range(len(img_ann_grid)):
         print(os.path.basename(img_ann_grid[i][0]), img_ann_grid[i][1], img_ann_grid[i][2])

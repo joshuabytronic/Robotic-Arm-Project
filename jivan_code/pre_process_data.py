@@ -31,6 +31,7 @@ def convert_txt_to_csv(txt_file, csv_file):
 
 
 def main(temp_dir, data_dir, file_transfer):
+    csv_file = None
     img_dir = os.path.join(data_dir, "raw")
     os.makedirs(img_dir, exist_ok=True)
     for filename in os.listdir(temp_dir):
@@ -58,7 +59,8 @@ def main(temp_dir, data_dir, file_transfer):
                 shutil.copy(temp_path, dest_path)
 
 
-    return csv_file
+    if csv_file:
+        return csv_file
 
     
     
