@@ -1,5 +1,4 @@
 import time
-import struct
 import socket
 from pymodbus.client import ModbusTcpClient
 
