@@ -9,7 +9,7 @@ from Camera import surface_control, scan_control, Camera
 #Variables for user to set:
 sheet_dimensions = [636, 1235, 0]
 sheet_mount_dimensions = [0, 0, 10]
-camera = surface_control
+camera = scan_control
 module_name = "Module1"
 do_pulses = False
 wait_time = 1
@@ -153,6 +153,23 @@ def get_surface_coords():
 
 def get_scan_coords():
     coords = []
+
+    y_min = 0
+    y_min_global = y_min + offset[1]
+    
+    y_max = sheet_dimensions[1]
+    y_max_global = y_max + offset[1]
+    x_constant = sheet_dimensions[0] / 2 
+    x_constant_global = x_constant + offset[0]
+
+    coords.append([x_constant_global,y_min_global,offset[2]])
+    coords.append([x_constant_global,y_max_global,offset[2]])
+    return coords
+
+
+def legacy_get_scan_coords():
+    raise NotImplementedError("This function is deprecated. Use get_scan_coords() instead.")    
+    coords = []
     
     y_min = 0
     y_max = sheet_dimensions[1]
@@ -215,13 +232,13 @@ def motion_to_txt(
         motion.write("\n")
         motion.write(locations)
         motion.write("\n")
-        motion.write("")
+        
+        if wait_time: motion.write(socket_connection)
         motion.write("  PROC main()\n")
         motion.write("    SingArea \\Wrist;\n")
-        motion.write(socket_connection)
         motion.write(movements)
         motion.write("\n")
-        motion.write(socket_close)
+        if wait_time: motion.write(socket_close)
         motion.write("\n")
         motion.write("  ENDPROC\n")
         motion.write("ENDMODULE")
@@ -255,7 +272,6 @@ def coords_to_string(camera_type: Camera, const_coords: str, wait_command: str =
     
     #SCAN CONTROL LOGIC ---------------------------------------------------------
     elif camera == scan_control:
-        movement_strings.append("  PROC main()\n")
         
         for number, coordinate in enumerate(coords):
             
@@ -283,10 +299,6 @@ def coords_to_string(camera_type: Camera, const_coords: str, wait_command: str =
     else:
         raise ValueError("Failed at coords_to_string()")
 
-def scan_to_txt():
-    pass
-def surface_to_txt():
-    pass
 
 if __name__ == "__main__":
     #Getting co-ordinates and writing to the coordinates.csv
