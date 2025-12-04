@@ -7,9 +7,11 @@ from ttkbootstrap.constants import *
 
 import process_data_v2
 import os
+import shutil
+from datetime import datetime
 
-DEFAULT_DIR = r'data_output/20251202' # should be temp but this is for testing
-# DEFAULT_DIR = r'data_output/temp'
+# DEFAULT_DIR = r'data_output/20251202' # should be temp but this is for testing
+DEFAULT_DIR = r'data_output/temp'
 
 class DynamicImageApp:
     def __init__(self, root):
@@ -23,6 +25,7 @@ class DynamicImageApp:
         self.show_annotations = False
         self.showing_main = True
 
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         button_font = ("Arial", 12, "bold")
         style = ttk.Style()
@@ -45,8 +48,11 @@ class DynamicImageApp:
         self.dir_label = tk.Label(self.top_bar, text=f"Current directory: {os.path.basename(self.active_directory)}", anchor="w", font=button_font, padx=15, pady=8)
         self.dir_label.pack(side="left", padx=10, pady=5)
 
+        self.save_btn = ttk.Button(self.top_bar, text="Save", command=self.save_working_dir, style="custom.TButton")
+        self.save_btn.pack(side="left", padx=5, pady=5)
+
         self.reload_btn = ttk.Button(self.top_bar, text="Reload", command=self.reload_directory, style="custom.TButton")
-        self.reload_btn.pack(side="left", padx=5, pady=5)
+        self.reload_btn.pack(side="left", padx=5, pady=5)        
 
         self.ann_btn = ttk.Button(self.top_bar, text="Show Annotations", command=self.toggle_annotations, style="custom.TButton")
         self.ann_btn.pack(side="right", padx=5, pady=5)
@@ -183,6 +189,13 @@ class DynamicImageApp:
 
     def choose_directory(self):
         initial_dir = os.path.dirname(self.active_directory)
+        if os.path.basename(initial_dir) == "temp":
+            self.main_original = Image.open("../empty.png")
+            self.current_original = self.main_original
+            self.display_image()
+            working_dir = os.path.abspath(initial_dir).replace("temp", "working")
+            self.delete_dir(working_dir)
+
         new_dir = filedialog.askdirectory(title="Select Image Directory", initialdir=initial_dir)
         self.active_directory = new_dir
 
@@ -199,8 +212,7 @@ class DynamicImageApp:
             messagebox.showerror("Error", f"Failed to process directory:\n{e}")
             return
 
-        # if os.path.basename(new_dir) == "temp":
-        #     new_dir = os.path.abspath(new_dir).replace("temp", "working")
+        
 
         # Rebuild images & grid
         self.images = [
@@ -254,12 +266,37 @@ class DynamicImageApp:
             self.current_original = self.main_original
         self.display_image()
 
+    
+    def save_working_dir(self):
+        if not self.active_directory or not os.path.isdir(self.active_directory):
+            messagebox.showerror("Error", "No working directory to save.")
+            return
+
+        if os.path.basename(self.active_directory) == "temp":
+            working_dir = os.path.abspath(self.active_directory).replace("temp", "working")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_dir_parent = os.path.join(os.path.dirname(os.path.abspath(self.active_directory)), "saved")
+            save_dir = os.path.join(save_dir_parent, f"output_{timestamp}")
+        
+            try:
+                shutil.copytree(working_dir, save_dir)
+                messagebox.showinfo("Saved", f"Working directory saved to:\n{save_dir}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save directory:\n{e}")
+
 
     def reload_directory(self):
         current_dir = self.active_directory
         if not current_dir or not os.path.isdir(current_dir):
             messagebox.showerror("Error", "No valid directory loaded to reload.")
             return
+
+        if os.path.basename(current_dir) == "temp":
+            self.main_original = Image.open("../empty.png")
+            self.current_original = self.main_original
+            self.display_image()
+            working_dir = os.path.abspath(current_dir).replace("temp", "working")
+            self.delete_dir(working_dir)
 
         # Re-run processing
         try:
@@ -311,6 +348,61 @@ class DynamicImageApp:
         self.showing_main = True
         self.home_btn.pack_forget()
         self.display_image()
+
+    
+    def delete_dir(self, dir_path):
+        try:
+            if hasattr(self, "main_original") and self.main_original:
+                self.main_original.close()
+                self.main_original = None
+            if hasattr(self, "current_original") and self.current_original:
+                self.current_original.close()
+                self.current_original = None
+        except Exception:
+            pass
+            
+        for img, _, _ in getattr(self, "images", []):
+            try:
+                img.close()
+            except Exception:
+                pass
+
+        for root, dirs, files in os.walk(dir_path, topdown=False):
+            # Delete files first
+            for name in files:
+                file_path = os.path.join(root, name)
+                try:
+                    os.unlink(file_path)  # unlink = delete the file
+                except PermissionError:
+                    os.chmod(file_path, 0o777)
+                    os.unlink(file_path)
+                except Exception as e:
+                    print(f"Failed to delete file {file_path}: {e}")
+
+            # Delete directories
+            for name in dirs:
+                dir_to_remove = os.path.join(root, name)
+                try:
+                    os.rmdir(dir_to_remove)
+                except Exception as e:
+                    print(f"Failed to delete directory {dir_to_remove}: {e}")
+
+        # Finally delete the top-level directory
+        try:
+            os.rmdir(dir_path)
+        except Exception as e:
+            print(f"Failed to delete top directory {dir_path}: {e}")
+
+        
+    def on_close(self):
+        if os.path.basename(DEFAULT_DIR) == "temp":
+            working_dir = os.path.abspath(DEFAULT_DIR).replace("temp", "working")
+            if os.path.exists(working_dir):      
+                self.delete_dir(working_dir)
+        print("App is closing… do cleanup here")
+        # Example: close images, delete temp dirs, save state, etc.
+        
+        self.root.destroy()
 
 
 # root = tk.Tk()

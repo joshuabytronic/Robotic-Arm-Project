@@ -34,6 +34,16 @@ def get_grid_info(camera_coords):
     grid_size = (num_rows, num_cols)
     return grid_size, num_rows, num_cols
 
+def create_save_dir(input_dir):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if os.path.basename(input_dir) == "temp":
+        data_dir = os.path.abspath(input_dir).replace("temp", "working")
+    else:
+        data_dir_parent = os.path.join(os.path.dirname(os.path.abspath(input_dir)), "saved")
+        data_dir = os.path.join(data_dir_parent, os.path.basename(input_dir)+f"_output_{timestamp}")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
 
 class Defects:
     def __init__(self,csv_file):
@@ -169,13 +179,7 @@ def main(input_dir):
     global img_unann_stitched
     global img_ann_stitched
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if os.path.basename(input_dir) == "temp":
-        data_dir = os.path.abspath(input_dir).replace("temp", "working")
-    else:
-        data_dir_parent = os.path.join(os.path.dirname(os.path.abspath(input_dir)), "processed")
-        data_dir = os.path.join(data_dir_parent, os.path.basename(input_dir)+f"_output_{timestamp}")
-    os.makedirs(data_dir, exist_ok=True)
+    data_dir = create_save_dir(input_dir)
     
     camera_coords = get_camera_coords()
     camera_coords.sort(key = lambda x: x[1])
