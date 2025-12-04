@@ -87,13 +87,13 @@ for index in range(0,len(offset)):
 
 def get_coords():
     if camera == surface_control:
-        return get_surface_coords()
+        return get_surface_coords(sheet_dimensions, scan_area, offset)
     elif camera == scan_control:
         return get_scan_coords()
     else:
         raise ValueError("Camera not recognised! Please check coordinate generation function!")
 
-def get_surface_coords():
+def get_surface_coords(sheet_dimensions, scan_area, offset):
     coords = []
     
     #How many times can we divide the plate by the x and y scan area?
