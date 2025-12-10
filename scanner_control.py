@@ -29,6 +29,8 @@ class Crb:
     def reconnect(self, max_attempts = 5, pause_time = 0.2):
         for _ in range(max_attempts):
             try:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.settimeout(self.timeout)
                 self.sock.connect((self.ip, self.port))
                 self.connected = True
                 return True
@@ -260,16 +262,14 @@ class MicroEpsilonDriver:
         
         # 2. WAIT FOR ROBOT TO BE READY (STATIONARY WAITING FOR NEXT MOVE)
         robot.wait_ready()
-        
+        time.sleep(0.3)
         # 3. TRIGGER SCANNER MEASUREMENT
         self.trigger_measurement(do_timed_events)
-
         # 4. ACKNOWLEDGE RESULTS
         self.acknowledge()
-
         # 5. SEND GO SIGNAL TO ROBOT
         robot.go(coords[0],coords[1],coords[2])
-        time.sleep(0.5)
+        time.sleep(0.2)
 
     def close(self, robot: Crb = None):
         self.mb.close()
@@ -293,30 +293,30 @@ def input_coords():
 if __name__ == "__main__":   
     # Get coordinates to scan
     coords = get_coords()
-    
+    coords.sort(key = lambda x: x[1])
+
     # Initialize Driver connection
     driver = MicroEpsilonDriver(IP_ADDRESS)
     driver.connect()
 
     # Initialize robot connection
     crb = Crb()
-
     for position in coords:
         try:
             driver.run_measurement_cycle(crb, position)
 
         except KeyboardInterrupt:
             print("\nStopped by User.")
+            break
         
         except Exception as e:
             print(f"CRITICAL ERROR: {e}")
-        
-        finally:
-            # This runs no matter how you stop (Error, Quit, or Ctrl+C)
-            try:
-                driver.exit_to_manual_mode()
-            except:
-                pass
-            driver.close()
-            crb.close()
-            print("🔌 Connection Closed.")
+            break
+
+    try:
+        driver.exit_to_manual_mode()
+    except:
+        pass
+    driver.close()
+    crb.close()
+    print("🔌 Connection Closed.")

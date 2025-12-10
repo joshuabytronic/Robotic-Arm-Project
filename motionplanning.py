@@ -14,13 +14,17 @@ positions = {
 }
 joint_position = positions["new"]
 
+socket_variables = (
+    f"\n"
+    f"VAR socketdev server_socket;\n" 
+    f"VAR socketdev client_socket;\n"
+    f"VAR string integer_in;\n"
+    f"VAR string client_ip;\n"
+    f"\n"
+)
+
 #Socket connections
 socket_connection = (
-    f"\n"
-    f"    VAR socketdev server_socket;\n" 
-    f"    VAR socketdev client_socket;\n"  
-    f"    VAR string integer_in;\n"
-    f"    VAR string client_ip;\n"
 
     # ! 1. Create, bind, and listen on the server socket
     f"\n"
@@ -205,7 +209,7 @@ def motion_to_txt(
             f"    WaitRob \\InPos;\n"
             f"    WaitTime 0.2;\n"
             f"    SocketSend client_socket \\Str := \"READY\";\n"
-            f"    SocketReceive client_socket \\Str := integer_in \\Time:=30;\n"
+            f"    SocketReceive client_socket \\Str := integer_in \\Time:=600;\n"
             )
     else:
         wait_command = None
@@ -222,12 +226,15 @@ def motion_to_txt(
         motion.write("\n")
         motion.write(locations)
         motion.write("\n")
+        if wait_time: motion.write(socket_variables)
         
-        if wait_time: motion.write(socket_connection)
         motion.write("  PROC main()\n")
+        if wait_time: motion.write(socket_connection)
+        
         motion.write("    SingArea \\Wrist;\n")
         motion.write(movements)
         motion.write("\n")
+        
         if wait_time: motion.write(socket_close)
         motion.write("\n")
         motion.write("  ENDPROC\n")
