@@ -284,25 +284,27 @@ class MicroEpsilonDriver:
             time.sleep(0.5)
             print("✅ Sensor is in Manual Mode. You can now use 3DInspect manually.")
 
-if __name__ == "__main__":
-    coords = get_coords()
-    print(coords)
-    
-    driver = MicroEpsilonDriver(IP_ADDRESS)
-    crb = Crb()
-    while True:
-        x = int(input("Please enter x coordinate: ").strip())
-        y = int(input("Please enter y coordinate: ").strip())
-        z = int(input("Please enter z coordinate: ").strip())
-        driver.connect()
-        driver.run_measurement_cycle(crb, [x,y,z])
+def input_coords():
+    x = float(input("Enter X coordinate: ").strip())
+    y = float(input("Enter Y coordinate: ").strip())
+    z = float(input("Enter Z coordinate (default 525.0): ").strip() or 525.0)
+    return (x, y, z)
 
+if __name__ == "__main__":   
+    # Get coordinates to scan
     coords = get_coords()
-    for coord in coords:
+    
+    # Initialize Driver connection
+    driver = MicroEpsilonDriver(IP_ADDRESS)
+    driver.connect()
+
+    # Initialize robot connection
+    crb = Crb()
+
+    for position in coords:
         try:
-            driver.connect()
-            driver.run_measurement_cycle(crb, coord)
-        
+            driver.run_measurement_cycle(crb, position)
+
         except KeyboardInterrupt:
             print("\nStopped by User.")
         
