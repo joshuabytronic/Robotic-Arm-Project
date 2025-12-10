@@ -1,6 +1,9 @@
 import time
 import socket
 from pymodbus.client import ModbusTcpClient
+from config import *
+from motionplanning import get_coords
+
 
 # --- CONFIGURATION ---
 IP_ADDRESS = '127.0.0.1'
@@ -38,6 +41,7 @@ class Crb:
         for _ in range(2):
             try:
                 self.sock.sendall(message)
+                print(f"Sent to robot: {message}\n")
                 return True
             except Exception as e:
                 self.reconnect(max_attempts=2,pause_time=0.2)
@@ -55,6 +59,12 @@ class Crb:
                 self.reconnect(max_attempts=2,pause_time=0.2)
                 print(f"Error sending to robot: {str(e)}")
         return False
+    
+    def go(self, x = None, y = None, z = None):
+        if x and y and z:
+            return self.send_coords(x, y, z)
+        else:
+            return self.send(b"go")
 
     def receive(self, attempts = 1):
         for _ in range(attempts):
@@ -68,6 +78,18 @@ class Crb:
                 self.reconnect()
                 print(f"Error receiving from robot: {str(e)}")
         return None
+
+    def wait_ready(self, ready_signal = b'READY'):
+        while True:
+            try:
+                data = self.receive(attempts = 5)
+                if data and ready_signal in data:
+                    print(data.decode("utf-8"))
+                    print("Robot READY signal recieved.")
+                    return True
+            except socket.timeout:
+                print("Waiting for Robot READY signal... press Ctrl+C to exit...")
+                
 
     def close(self):
         try:
@@ -144,33 +166,8 @@ class MicroEpsilonDriver:
         except Exception as e:
             return None
 
-    def acknowledge(self):
-        print(">> Acknowledging Results (Sending 9)...")
-        self.set_control_register(BIT_AUTO_MODE | BIT_RESULT_ACK)
-        time.sleep(0.2)
-        
-        # 5. RESET TO READY
-        # Go back to just AutoMode(1) -> Value 1
-        print(">> Resetting to Ready (Sending 1)...")
-        self.set_control_register(BIT_AUTO_MODE)
-        time.sleep(0.2)
-        
-        final_state = self.get_state()
-        print(f"Final Sensor State: {final_state} (Should be 1)")
-        if final_state != 1:
-            print("❌ Sensor not in Ready State after acknowledgment.")
-            self.acknowledge()
     
-    def run_measurement_cycle(self):
-        
-        if time.time() - self.timer > 3:
-            self.timer = time.time()
-            do_timed_events = True
-        else:
-            do_timed_events = False
-        
-        print("\n--- STARTING MEASUREMENT CYCLE ---")
-        
+    def automatic_mode(self, do_timed_events: bool = False):
         # 1. Automatic mode ON - REG 4 write 1
         current_state = self.get_state()
        
@@ -188,37 +185,29 @@ class MicroEpsilonDriver:
                 if state == 1: break
             else:
                 print("❌ Timeout waiting for Ready State (1)")
-                return
+                return False
 
         if self.get_state() != 1:
             print("❌ Sensor not Ready. Check connections.")
-            return
+            return False
 
         print("✅ Sensor is READY (State 1).")
+        return True    
 
-        # 1.2 WAIT UNTIL ROBOT READY
-        while True:
-            try:
-                data = crb.receive(attempts = 5)
-                if data and b'READY' in data:
-                    print(data.decode("utf-8"))
-                    print("Robot READY signal recieved.")
-                    break
-            except socket.timeout:
-                print("Waiting for Robot READY signal...")
-                
-       
+    def trigger_measurement(self, do_timed_events: bool = False):
         # 2. TRIGGER MEASUREMENT
-        time.sleep(0.5)
+        #time.sleep(0.5)
+        
         print(">> Triggering Scan (Sending 3)...")
         self.set_control_register(BIT_AUTO_MODE | BIT_START)
 
         # 3. WAIT FOR PROCESSING
-        # State sequence: 1 -> 2 (Exposure) -> 3/4 (Processing) -> 5 (Wait for Ack)
+        # State sequence: 1 -> 2 (Exposure) -> 3/4 (Processing) -> 5 (Wait for Acknowledgement)
         processing_timer = time.time()
+        
         print(">> Waiting for completion...")
         data_received = False
-        for _ in range(20): # 10 seconds max
+        for _ in range(20):
             state = self.get_state()
             if do_timed_events: print(f"   State: {state}")
             
@@ -233,23 +222,59 @@ class MicroEpsilonDriver:
 
             time.sleep(0.2)
         
-        if not data_received > 1:
+        if not data_received:
                 data = self.get_data()
                 data_received = data is not None
+        
 
+    def acknowledge(self):
+        print(">> Acknowledging Results (Sending 9)...")
+        self.set_control_register(BIT_AUTO_MODE | BIT_RESULT_ACK)
+        time.sleep(0.2)
+        
+        # 5. RESET TO READY
+        # Go back to just AutoMode(1) -> Value 1
+        print(">> Resetting to Ready (Sending 1)...")
+        self.set_control_register(BIT_AUTO_MODE)
+        time.sleep(0.2)
+        
+        final_state = self.get_state()
+        print(f"Final Sensor State: {final_state} (Should be 1)")
+        if final_state != 1:
+            print("❌ Sensor not in Ready State after acknowledgment.")
+            self.acknowledge()
+    
+    def run_measurement_cycle(self, robot: Crb, coords: list = [None, None, None]):
+        print("\n--- STARTING MEASUREMENT CYCLE ---")
+        
+        # Timed events are console outputs, stops spam in console
+        if time.time() - self.timer > 3:
+            self.timer = time.time()
+            do_timed_events = True
+        else:
+            do_timed_events = False
+
+        # 1. SWITCH SCANNER TO AUTOMATIC MODE
+        if not self.automatic_mode(do_timed_events):
+            return self.run_measurement_cycle(robot, coords)
+        
+        # 2. WAIT FOR ROBOT TO BE READY (STATIONARY WAITING FOR NEXT MOVE)
+        robot.wait_ready()
+        
+        # 3. TRIGGER SCANNER MEASUREMENT
+        self.trigger_measurement(do_timed_events)
 
         # 4. ACKNOWLEDGE RESULTS
         self.acknowledge()
 
-        #SEND GO SIGNAL TO ROBOT!
-        crb.send(b"a")
-        print("Sent go signal")
+        # 5. SEND GO SIGNAL TO ROBOT
+        robot.go(coords[0],coords[1],coords[2])
         time.sleep(0.5)
 
-    def close(self):
+    def close(self, robot: Crb = None):
         self.mb.close()
         if self.sock: self.sock.close()
-        if crb: crb.close()
+        if robot: robot.close()
 
     def exit_to_manual_mode(self):
             """Switches the sensor back to Manual Mode so the GUI works again."""
@@ -259,32 +284,39 @@ class MicroEpsilonDriver:
             time.sleep(0.5)
             print("✅ Sensor is in Manual Mode. You can now use 3DInspect manually.")
 
-if __name__ == "__main__":
+def input_coords():
+    x = float(input("Enter X coordinate: ").strip())
+    y = float(input("Enter Y coordinate: ").strip())
+    z = float(input("Enter Z coordinate (default 525.0): ").strip() or 525.0)
+    return (x, y, z)
+
+if __name__ == "__main__":   
+    # Get coordinates to scan
+    coords = get_coords()
+    
+    # Initialize Driver connection
     driver = MicroEpsilonDriver(IP_ADDRESS)
+    driver.connect()
+
+    # Initialize robot connection
     crb = Crb()
 
-    try:
-        driver.connect()
-        while True:
-            # user_input = input("\nPress ENTER to Scan (or type 'q' to Quit): ")
-            
-            # if user_input.lower() == 'q':
-            #     break # Exit the loop gracefully
-                
-            driver.run_measurement_cycle()
-            
-    except KeyboardInterrupt:
-        print("\nStopped by User.")
-        
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        
-    finally:
-        # This runs no matter how you stop (Error, Quit, or Ctrl+C)
+    for position in coords:
         try:
-            driver.exit_to_manual_mode()
-        except:
-            pass
-        driver.close()
-        crb.close()
-        print("🔌 Connection Closed.")
+            driver.run_measurement_cycle(crb, position)
+
+        except KeyboardInterrupt:
+            print("\nStopped by User.")
+        
+        except Exception as e:
+            print(f"CRITICAL ERROR: {e}")
+        
+        finally:
+            # This runs no matter how you stop (Error, Quit, or Ctrl+C)
+            try:
+                driver.exit_to_manual_mode()
+            except:
+                pass
+            driver.close()
+            crb.close()
+            print("🔌 Connection Closed.")
