@@ -8,7 +8,6 @@ from cv2.gapi.streaming import timestamp
 import numpy as np
 import sys
 sys.path.append(os.path.abspath('..'))
-import smart_scan
 import motionplanning
 import pre_process_data
 import Camera
