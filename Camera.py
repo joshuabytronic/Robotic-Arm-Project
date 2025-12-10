@@ -103,7 +103,7 @@ class Camera():
             self.scan_area = [x_scannable, y_scannable]
 
 neutral = [0,0,0]
-real = [0,-150,50]
+real = [0,150,50]
 real_surface = [-(49/2),0,75]
 
 surface_control = Camera(
@@ -126,5 +126,5 @@ scan_control = Camera(
     y_scan_length= 1,
     mount_dimensions = [10,0,0],
     overlap = 0,
-    orientation = "final"
+    orientation = "parallel_3"
 )
