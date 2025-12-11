@@ -3,7 +3,7 @@ import socket
 from pymodbus.client import ModbusTcpClient
 from config import *
 from motionplanning import get_coords
-
+from defect_saver import save_defect_file
 
 # --- CONFIGURATION ---
 IP_ADDRESS = '127.0.0.1'
@@ -269,9 +269,15 @@ class MicroEpsilonDriver:
         self.trigger_measurement(do_timed_events)
         # 4. ACKNOWLEDGE RESULTS
         self.acknowledge()
+        while self.get_state() != 1:
+            print("Waiting for sensor to return to Ready state...")
+            #state 1 is just camera
+            # we need ready state from the software (which it doesnt give us so need a weird hack here....)
+            time.sleep(0.5)
+        save_defect_file(filename = f"Defects_{time.time()}_{coords[0]}_{coords[1]}")
         time.sleep(0.2)
 
-    def close(self, robot: Crb = None):
+    def close(self, robot: Crb = None): 
         self.mb.close()
         if self.sock: self.sock.close()
         if robot: robot.close()
