@@ -38,11 +38,14 @@ def open_defects_menu(window):
 
 
 #CHECK this function!!!! ----------------------------------------------------------------- 
-def read_status_text(main_window):
+def read_status_text():
     """
     Locate the status group by its auto_id (the Group control) and return the inner text.
     Tries the specific text auto_id first, then any Text descendant.
     """
+    app = connect_application()
+    main_window = connect_main_window(app)
+    
     try:
         status_group = main_window.child_window(
             auto_id="MainWindow.centralWidget.m_main_widget.splitter.m_status_widget_container.m_status_widget",
@@ -165,8 +168,4 @@ def save_defect_file(filename: str):
     save_defects_file(main_window, file_name)
     
 if __name__ == "__main__":
-    app = connect_application()
-    main_window = connect_main_window(app)
-    
-    print("Ready" in read_status_text(main_window))    
-    #save_defect_file("defects_exported")
+    save_defect_file("defects_exported")
