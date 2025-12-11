@@ -7,6 +7,9 @@ from math import ceil
 from Camera import surface_control, scan_control, Camera
 from config import *
 
+sheet_h, sheet_l, sheet_z = sheet_dimensions
+sheet_dimensions = [sheet_l, sheet_h, sheet_z] # (y, x, z) --> (x, y, z)
+
 positions = {
     "new": "[-1, -1, -1, 0]",
     "old": "[-1, 0, -1, 0]",

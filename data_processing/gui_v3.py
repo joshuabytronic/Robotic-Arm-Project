@@ -1,23 +1,26 @@
 import tkinter as tk
 from PIL import Image, ImageTk
+
+import ctypes
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("timet.gui")
+
 from tkinter import filedialog, messagebox
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-import process_data_v2
+import process_data_v3
 import os
 import shutil
 from datetime import datetime
 
-# DEFAULT_DIR = r'data_output/20251202' # should be temp but this is for testing
-DEFAULT_DIR = r'data_output/temp'
+DEFAULT_DIR = r'data_output/20251211' # should be temp but this is for testing
+# DEFAULT_DIR = r'data_output/temp'
 
 class DynamicImageApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Timet Surface Defect UI")
-        root.iconbitmap("../I_logo.ico")
 
         self.directory = DEFAULT_DIR
         self.active_directory = DEFAULT_DIR
@@ -27,7 +30,7 @@ class DynamicImageApp:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        button_font = ("Arial", 12, "bold")
+        self.button_font = ("Arial", 12, "bold")
         style = ttk.Style()
         style.configure(
             "custom.TButton",
@@ -45,7 +48,7 @@ class DynamicImageApp:
         self.folder_btn.pack(side="left", padx=5, pady=5)
 
         # Folder preview
-        self.dir_label = tk.Label(self.top_bar, text=f"Current directory: {os.path.basename(self.active_directory)}", anchor="w", font=button_font, padx=15, pady=8)
+        self.dir_label = tk.Label(self.top_bar, text=f"Current directory: {os.path.basename(self.active_directory)}", anchor="w", font=self.button_font, padx=15, pady=8)
         self.dir_label.pack(side="left", padx=10, pady=5)
 
         self.save_btn = ttk.Button(self.top_bar, text="Save", command=self.save_working_dir, style="custom.TButton")
@@ -68,12 +71,15 @@ class DynamicImageApp:
         self.canvas = tk.Canvas(self.canvas_frame, highlightthickness=0)
         self.canvas.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.98, relheight=0.9)
 
-
         # Bind resizing + clicking
         self.canvas.bind("<Configure>", self.on_resize)
         self.canvas.bind("<Button-1>", self.on_click)
 
         self.load_directory(self.active_directory)
+
+        if self.sheet_size:
+            self.top_info = tk.Label(self.canvas_frame, text=f"Sheet size: {self.sheet_size[1]} x {self.sheet_size[0]} mm", anchor="center", font=self.button_font)
+            self.top_info.pack(side="top", padx=10, pady=5)
 
     
     def load_directory(self, directory):
@@ -81,7 +87,7 @@ class DynamicImageApp:
         self.dir_label.config(text=f"Current directory: {os.path.basename(self.active_directory)}")
 
         try:
-            process_data_v2.main(directory)
+            process_data_v3.main(directory)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to process directory:\n{e}")
             return
@@ -91,10 +97,12 @@ class DynamicImageApp:
 
         self.images = [
             (Image.open(path), row, col)
-            for (path, row, col) in process_data_v2.img_unann_grid
+            for (path, row, col) in process_data_v3.img_unann_grid
         ]
-        self.grid_size = process_data_v2.grid_size
-        self.main_original = Image.open(process_data_v2.img_unann_stitched)
+        self.sheet_size = process_data_v3.sheet_dimensions
+        self.grid_size = process_data_v3.grid_size
+        self.camera_grid = process_data_v3.camera_grid
+        self.main_original = Image.open(process_data_v3.img_unann_stitched)
         self.current_original = self.main_original
         self.showing_main = True
 
@@ -172,20 +180,27 @@ class DynamicImageApp:
             y1 = y0 + cell_height
 
             if x0 <= adj_x < x1 and y0 <= adj_y < y1:
-                self.show_sub(filename)
+                camera_coord = (self.camera_grid[0][row],self.camera_grid[1][column])
+                self.show_sub(filename, camera_coord)
                 return
 
-    def show_sub(self, img):
+    def show_sub(self, img, camera_coord):
         self.current_original = img
         self.showing_main = False
         self.home_btn.pack(side="right", padx=5)
+        self.top_info.pack_forget()
+        self.top_info = tk.Label(self.canvas_frame, text=f"Image position on sheet: {camera_coord[1]}, {camera_coord[0]}", anchor="center", font=self.button_font)
+        self.top_info.pack(side="top", padx=10, pady=5)
         self.display_image()
 
     def show_main(self):
         self.current_original = self.main_original
         self.showing_main = True
         self.home_btn.pack_forget()
-        self.display_image()
+        self.top_info.pack_forget()
+        self.top_info = tk.Label(self.canvas_frame, text=f"Sheet size: {self.sheet_size[1]} x {self.sheet_size[0]} mm", anchor="center", font=self.button_font)
+        self.top_info.pack(side="top", padx=10, pady=5)
+        self.display_image()            
 
     def choose_directory(self):
         initial_dir = os.path.dirname(self.active_directory)
@@ -207,7 +222,7 @@ class DynamicImageApp:
 
         # Try to run your processing script
         try:
-            process_data_v2.main(new_dir)
+            process_data_v3.main(new_dir)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to process directory:\n{e}")
             return
@@ -217,12 +232,13 @@ class DynamicImageApp:
         # Rebuild images & grid
         self.images = [
             (Image.open(path), row, col)
-            for (path, row, col) in process_data_v2.img_unann_grid
+            for (path, row, col) in process_data_v3.img_unann_grid
         ]
-        self.grid_size = process_data_v2.grid_size
+        self.grid_size = process_data_v3.grid_size
+        self.camera_grid = process_data_v3.camera_grid
 
         # Update main stitched
-        self.main_original = Image.open(process_data_v2.img_unann_stitched)
+        self.main_original = Image.open(process_data_v3.img_unann_stitched)
         self.current_original = self.main_original
         self.showing_main = True
         self.home_btn.pack_forget()
@@ -236,26 +252,27 @@ class DynamicImageApp:
         if self.show_annotations:
             self.ann_btn.config(text="Hide Annotations")
 
-            grid = process_data_v2.img_ann_grid
-            stitched = process_data_v2.img_ann_stitched
+            grid = process_data_v3.img_ann_grid
+            stitched = process_data_v3.img_ann_stitched
         else:
             self.ann_btn.config(text="Show Annotations")
 
-            grid = process_data_v2.img_unann_grid
-            stitched = process_data_v2.img_unann_stitched
+            grid = process_data_v3.img_unann_grid
+            stitched = process_data_v3.img_unann_stitched
 
         # Rebuild the image grid
         grid_map = {(row, col): path for (path, row, col) in grid}
         self.images = [(Image.open(path), row, col) for (path, row, col) in grid]
-        self.grid_size = process_data_v2.grid_size
+        self.grid_size = process_data_v3.grid_size
+        self.camera_grid = process_data_v3.camera_grid
 
         if not self.showing_main:
             current_filename = os.path.basename(self.current_original.filename)
             self.main_original = Image.open(stitched)
 
             # Find matching row/col from previous grid
-            for (path, row, col) in (process_data_v2.img_ann_grid +
-                                    process_data_v2.img_unann_grid):
+            for (path, row, col) in (process_data_v3.img_ann_grid +
+                                    process_data_v3.img_unann_grid):
                 if os.path.basename(path) == current_filename:
                     # Load the corresponding annotated/unannotated version
                     new_path = grid_map[(row, col)]
@@ -300,7 +317,7 @@ class DynamicImageApp:
 
         # Re-run processing
         try:
-            process_data_v2.main(current_dir)
+            process_data_v3.main(current_dir)
         except Exception as e:
             messagebox.showerror("Error", f"Reload failed:\n{e}")
             return
@@ -313,15 +330,16 @@ class DynamicImageApp:
         self.ann_btn.config(text="Show Annotations")
 
         # Use unannotated grid & stitched image
-        grid = process_data_v2.img_unann_grid
-        stitched = process_data_v2.img_unann_stitched
+        grid = process_data_v3.img_unann_grid
+        stitched = process_data_v3.img_unann_stitched
 
         # Rebuild image grid
         self.images = [
             (Image.open(path), row, col)
             for (path, row, col) in grid
         ]
-        self.grid_size = process_data_v2.grid_size
+        self.grid_size = process_data_v3.grid_size
+        self.camera_grid = process_data_v3.camera_grid
 
         # Reset main stitched image
         self.main_original = Image.open(stitched)
@@ -336,14 +354,15 @@ class DynamicImageApp:
 
 
     def load_default(self):
-        process_data_v2.main(DEFAULT_DIR)
+        process_data_v3.main(DEFAULT_DIR)
         self.refresh_from_processed()
 
 
     def refresh_from_processed(self):
-        self.images = [(Image.open(path), row, col) for (path, row, col) in process_data_v2.img_unann_grid]
-        self.grid_size = process_data_v2.grid_size
-        self.main_original = Image.open(process_data_v2.img_unann_stitched)
+        self.images = [(Image.open(path), row, col) for (path, row, col) in process_data_v3.img_unann_grid]
+        self.grid_size = process_data_v3.grid_size
+        self.camera_grid = process_data_v3.camera_grid
+        self.main_original = Image.open(process_data_v3.img_unann_stitched)
         self.current_original = self.main_original
         self.showing_main = True
         self.home_btn.pack_forget()
@@ -408,5 +427,6 @@ class DynamicImageApp:
 # root = tk.Tk()
 root = ttk.Window(themename="darkly")
 root.geometry("1200x900")
+root.iconbitmap("../I_logo.ico")
 app = DynamicImageApp(root)
 root.mainloop()
