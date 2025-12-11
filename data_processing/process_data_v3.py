@@ -115,7 +115,7 @@ class ConvertImages:
                    
         self.col_range = (min_mean, max_mean)
         self.col_range = (-10.0, 0.0)
-        self.col_range = (-20.0, 30.0)
+        # self.col_range = (-20.0, 30.0)
 
     def bit16_to_bit8_col(self, img_32, range=None, color=True):
         if not range:
