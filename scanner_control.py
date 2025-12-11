@@ -77,14 +77,14 @@ class Crb:
                 else:
                     return None
             except Exception as e:
-                self.reconnect()
                 print(f"Error receiving from robot: {str(e)}")
+                time.sleep(0.2)
         return None
 
     def wait_ready(self, ready_signal = b'READY'):
         while True:
             try:
-                data = self.receive(attempts = 5)
+                data = self.receive(attempts = 20)
                 if data and ready_signal in data:
                     print(data.decode("utf-8"))
                     print("Robot READY signal recieved.")
@@ -259,6 +259,8 @@ class MicroEpsilonDriver:
         # 1. SWITCH SCANNER TO AUTOMATIC MODE
         if not self.automatic_mode(do_timed_events):
             return self.run_measurement_cycle(robot, coords)
+        # 5. SEND GO SIGNAL TO ROBOT
+        robot.go(coords[0],coords[1],coords[2])
         
         # 2. WAIT FOR ROBOT TO BE READY (STATIONARY WAITING FOR NEXT MOVE)
         robot.wait_ready()
@@ -267,8 +269,6 @@ class MicroEpsilonDriver:
         self.trigger_measurement(do_timed_events)
         # 4. ACKNOWLEDGE RESULTS
         self.acknowledge()
-        # 5. SEND GO SIGNAL TO ROBOT
-        robot.go(coords[0],coords[1],coords[2])
         time.sleep(0.2)
 
     def close(self, robot: Crb = None):
@@ -290,6 +290,9 @@ def input_coords():
     z = float(input("Enter Z coordinate (default 525.0): ").strip() or 525.0)
     return (x, y, z)
 
+def shutdown():
+    pass
+
 if __name__ == "__main__":   
     # Get coordinates to scan
     coords = get_coords()
@@ -308,10 +311,12 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nStopped by User.")
             break
-        
+            shutdown()
+
         except Exception as e:
             print(f"CRITICAL ERROR: {e}")
             break
+            shutdown()
 
     try:
         driver.exit_to_manual_mode()
