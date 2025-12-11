@@ -36,6 +36,45 @@ def open_defects_menu(window):
     
     export_defects_button.click_input()
 
+
+#CHECK this function!!!! ----------------------------------------------------------------- 
+def read_status_text(main_window):
+    """
+    Locate the status group by its auto_id (the Group control) and return the inner text.
+    Tries the specific text auto_id first, then any Text descendant.
+    """
+    try:
+        status_group = main_window.child_window(
+            auto_id="MainWindow.centralWidget.m_main_widget.splitter.m_status_widget_container.m_status_widget",
+            control_type="Group"
+        )
+        if not status_group.exists(timeout=0.5):
+            return None
+
+        # 1) Try known inner Text auto_id (from your printout)
+        try:
+            label = status_group.child_window(
+                auto_id="MainWindow.centralWidget.m_main_widget.splitter.m_status_widget_container.m_status_widget.m_box.widget_2.m_label_status",
+                control_type="Text"
+            )
+            if label.exists(timeout=0.2):
+                return (getattr(getattr(label, "element_info", None), "name", None)
+                        or label.window_text() or None)
+        except Exception:
+            pass
+
+        # 2) Fallback: return first non-empty Text descendant of the group
+        for txt in status_group.descendants(control_type="Text"):
+            text = (getattr(getattr(txt, "element_info", None), "name", None)
+                    or txt.window_text() or "").strip()
+            if text:
+                return text
+
+    except Exception:
+        pass
+
+    return None
+
 def handle_export_popup(app, file_name):
     # Connect to export defects popup
     export_menu = app.window(title="Export defects")
@@ -126,4 +165,8 @@ def save_defect_file(filename: str):
     save_defects_file(main_window, file_name)
     
 if __name__ == "__main__":
-    save_defect_file("defects_exported")
+    app = connect_application()
+    main_window = connect_main_window(app)
+    
+    print("Ready" in read_status_text(main_window))    
+    #save_defect_file("defects_exported")
