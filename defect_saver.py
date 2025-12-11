@@ -1,5 +1,6 @@
 from pywinauto import Application
 from pywinauto.keyboard import send_keys
+from pywinauto.findwindows import ElementNotFoundError
 
 
 file_name = "defects_exported"
@@ -13,7 +14,10 @@ def connect_main_window(app: Application):
     return window
 
 def restore_window(window):
-    window.restore()
+    try:
+        window.set_focus()
+    except Exception:
+        window.maximize()  
 
 def minimize_window(window):
     window.minimize()
@@ -23,7 +27,11 @@ def open_defects_menu(window):
     export_defects_button = file_menu.child_window(auto_id="MainWindow.actionExport_defects")
     
     # Open and interact
-    file_menu.expand()
+    try:
+        file_menu.expand()
+    except ElementNotFoundError:
+        print("Please ensure that the 3D inspect window is open and not minimized....")
+        input("Press Enter to continue once the window is open...")
     export_defects_button.click_input()
 
 def handle_export_popup(app, file_name):
@@ -110,13 +118,10 @@ def save_defect_file(filename: str):
     app = connect_application()
     main_window = connect_main_window(app)
     
-    restore_window(main_window)
     open_defects_menu(main_window)
     
     handle_export_popup(app, file_name)
     save_defects_file(main_window, file_name)
     
-    minimize_window(main_window)
-
 if __name__ == "__main__":
     save_defect_file("defects_exported")
