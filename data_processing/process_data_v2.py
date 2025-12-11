@@ -8,7 +8,6 @@ from cv2.gapi.streaming import timestamp
 import numpy as np
 import sys
 sys.path.append(os.path.abspath('..'))
-import smart_scan
 import motionplanning
 import pre_process_data
 import Camera
@@ -23,16 +22,15 @@ def get_camera_coords():
     #   - sheet_dimensions comes directly from motionplanning
     #   - scan_area comes from camera.scan_area
     #   - offset comes from camera.offset
-    return camera_coords
+    return sheet_dimensions, camera_coords
 
 def get_grid_info(camera_coords):
     xs = sorted({p[0] for p in camera_coords})
     ys = sorted({p[1] for p in camera_coords})
     num_rows = len(xs)
     num_cols = len(ys)
-    print(num_rows, num_cols)
     grid_size = (num_rows, num_cols)
-    return grid_size, num_rows, num_cols
+    return grid_size, num_rows, num_cols, (xs, ys)
 
 def create_save_dir(input_dir):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -122,8 +120,9 @@ class ConvertImages:
 
 
     def annotate_img(self,img,defect):
+        h, w = img.shape[:2]
         if defect[0] is not None and defect[1] is not None:
-            coord = (int(float(defect[0])), int(float(defect[1])))
+            coord = (int(w-float(defect[0])), int(h-float(defect[1])))
         else:
             coord = None
         if coord:
@@ -171,6 +170,8 @@ def stitch_imgs(grid_size, img_grid, img_dir):
 
 
 def main(input_dir):
+    global sheet_dimensions
+    global camera_grid
     global grid_size
     global img_raw_grid
     global img_unann_grid
@@ -181,9 +182,9 @@ def main(input_dir):
 
     data_dir = create_save_dir(input_dir)
     
-    camera_coords = get_camera_coords()
+    sheet_dimensions, camera_coords = get_camera_coords()
     camera_coords.sort(key = lambda x: x[1])
-    grid_size, num_rows, num_cols = get_grid_info(camera_coords)
+    grid_size, num_rows, num_cols, camera_grid = get_grid_info(camera_coords)
 
     if os.path.basename(input_dir) == "temp":
         csv_file = pre_process_data.main(input_dir, data_dir, "move")

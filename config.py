@@ -1,12 +1,13 @@
 from Camera import surface_control, scan_control
 
 # --- VARIABLES FOR GENERATING COORDINATES ---
-sheet_dimensions = [636, 1235, 0]
+# sheet_dimensions = [636, 1235, 0] # height, length, depth (y, x, z)
+sheet_dimensions = [1235, 636, 0] # length, height, depth (x, y, z)
 sheet_mount_dimensions = [0, 0, 10]
 camera = surface_control
 module_name = "Module1"
 do_pulses = False
-wait_time = 0
+wait_time = 1
 digital_output = "ABB_Scalable_IO_0_DO1"
 digital_input = "ABB_Scalable_IO_0_DI1"
 socket_ip = "\"192.168.125.1\"" # needs quotation marks!
