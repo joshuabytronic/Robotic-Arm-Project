@@ -160,33 +160,6 @@ def get_scan_coords():
     coords.append([x_constant_global,y_max_global,offset[2]])
     return coords
 
-
-def legacy_get_scan_coords():
-    raise NotImplementedError("This function is deprecated. Use get_scan_coords() instead.")    
-    coords = []
-    
-    y_min = 0
-    y_max = sheet_dimensions[1]
-    x_times = ceil(sheet_dimensions[0] / scan_area[0])
-    
-    for x in range(1,x_times+1):
-        if x == x_times:
-            x_centre = (sheet_dimensions[0] - (scan_area[0] / 2))
-        else:
-            x_centre = (x * scan_area[0]) - (scan_area[0]/2)
-        
-        x_global = x_centre + offset[0]
-        
-        #This shortens the path by alternating the direction of scan.
-        #Remove if statement to keep direction of scan 
-        y_min_global = (y_min + offset[1]) if x % 2 == 0 else (y_max + offset[1])
-        y_max_global = (y_max + offset[1]) if x % 2 == 0 else (y_min + offset[1])
-        
-        coords.append([x_global, y_min_global, offset[2]])
-        coords.append([x_global, y_max_global, offset[2]])
-
-    return coords
-
 def motion_to_txt(
         do_pulse: bool = False, 
         wait_time: int = 0.4, 
