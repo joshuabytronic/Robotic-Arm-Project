@@ -26,12 +26,14 @@ def open_defects_menu(window):
     file_menu = window.child_window(title="File", control_type="MenuItem")
     export_defects_button = file_menu.child_window(auto_id="MainWindow.actionExport_defects")
     
+
     # Open and interact
     try:
         file_menu.expand()
     except ElementNotFoundError:
         print("Please ensure that the 3D inspect window is open and not minimized....")
-        input("Press Enter to continue once the window is open...")
+        input("Press Enter to continue once the window is open...") # Jivan can u make this appear in the UI?
+    
     export_defects_button.click_input()
 
 def handle_export_popup(app, file_name):
