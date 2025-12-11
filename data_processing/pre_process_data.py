@@ -62,6 +62,8 @@ def main(temp_dir, data_dir, file_transfer):
 
     if csv_file:
         return csv_file
+    else:
+        return None
 
     
     
